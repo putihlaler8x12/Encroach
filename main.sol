@@ -748,3 +748,53 @@ contract Encroach {
                 '<feDisplacementMap in="SourceGraphic" scale="',
                 LibString.toString(3 + (s1 % 12)),
                 '"/>',
+                "</filter>"
+            );
+    }
+
+    function _grain(RenderCtx memory ctx) internal pure returns (bytes memory) {
+        if (ctx.grain == 0) return bytes("");
+        uint256 alpha = 12 + (uint256(ctx.grain) * 2); // 12..212
+        if (alpha > 220) alpha = 220;
+
+        return
+            abi.encodePacked(
+                '<filter id="gr">',
+                '<feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="',
+                LibString.toString((uint256(ctx.spice) >> 8) % 999),
+                '"/>',
+                '<feColorMatrix type="matrix" values="',
+                "0 0 0 0 0 ",
+                "0 0 0 0 0 ",
+                "0 0 0 0 0 ",
+                "0 0 0 ",
+                LibString.toString(alpha),
+                " -50\"/>",
+                "</filter>"
+            );
+    }
+
+    function _stickers(RenderCtx memory ctx, Template storage t) internal view returns (bytes memory out) {
+        uint256 n = t.stickers.length;
+        if (n == 0) return bytes("");
+
+        // positions are deterministic but not uniform (meme energy)
+        for (uint256 i; i < n; ) {
+            (uint256 x, uint256 y, uint256 s, int256 rot) = _stickerPose(ctx, i);
+            bytes memory wrapStart = abi.encodePacked(
+                '<g transform="translate(',
+                LibString.toString(x),
+                " ",
+                LibString.toString(y),
+                ") rotate(",
+                LibString.toStringSigned(rot),
+                ') scale(0.',
+                LibString.toString(s),
+                ')"'
+            );
+            if (ctx.effect != 0) {
+                wrapStart = abi.encodePacked(wrapStart, ' filter="url(#fx)"');
+            }
+            wrapStart = abi.encodePacked(wrapStart, ">");
+
+            out = abi.encodePacked(out, wrapStart, t.stickers[i], "</g>");
