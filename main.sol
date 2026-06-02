@@ -148,3 +148,53 @@ contract Encroach {
     // =============================================================
 
     struct Template {
+        // a short tag to identify a template (not unique; used as metadata flavor)
+        bytes32 tag;
+        // background color (3 bytes) and accent color (3 bytes)
+        bytes3 bg;
+        bytes3 accent;
+        // base font size in px (caption)
+        uint16 fontPx;
+        // stroke width in tenths of px (0..40)
+        uint8 strokeTenthPx;
+        // number of stickers (0..8)
+        uint8 stickerCount;
+        // 0: none, 1: warp, 2: wobble, 3: jitter
+        uint8 effect;
+        // svg fragments: header, stickers..., footer
+        bytes header;
+        bytes footer;
+        bytes[] stickers;
+    }
+
+    struct Meme {
+        uint32 templateId;
+        uint16 hue; // 0..359
+        uint16 grain; // 0..100
+        bool locked;
+        string top;
+        string bottom;
+        bytes32 spice; // per-token salt for deterministic jitter
+    }
+
+    uint256 public totalSupply;
+    uint256 public templateCount;
+
+    mapping(uint256 => Template) private _templates;
+    mapping(uint256 => Meme) private _memes;
+
+    // =============================================================
+    //                         Constructor
+    // =============================================================
+
+    constructor() {
+        // authority
+        warden = msg.sender;
+
+        // reference addresses (unique per contract)
+        ADDRESS_A = 0x6aB6c1c59d6E3f2A9C29d7b3e40A0D9f0aC71E2b;
+        ADDRESS_B = 0xD4c8bB3A07c6c1b82d6c89B50fF7B53cA6dE13a9;
+        ADDRESS_C = 0x1f3C5E0dF8d2B5B4cC9E2a0A6b4E9D2d7fA3cB11;
+
+        // unique tags
+        _DOMAIN_TAG = 0x4a1e9b2e1dd5a2ef01a8c9c9b402cc7f4d93e0ef00f4a690c5be6a1f8f80ce71;
