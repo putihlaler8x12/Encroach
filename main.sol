@@ -348,3 +348,53 @@ contract Encroach {
         return (_royaltyReceiver, _royaltyBps);
     }
 
+    // =============================================================
+    //                       Templates (Registry)
+    // =============================================================
+
+    function templateAt(uint256 templateId)
+        external
+        view
+        returns (
+            bytes32 tag,
+            bytes3 bg,
+            bytes3 accent,
+            uint16 fontPx,
+            uint8 strokeTenthPx,
+            uint8 stickerCount,
+            uint8 effect
+        )
+    {
+        if (templateId >= templateCount) revert ENC_BadTemplate();
+        Template storage t = _templates[templateId];
+        return (t.tag, t.bg, t.accent, t.fontPx, t.strokeTenthPx, t.stickerCount, t.effect);
+    }
+
+    function templateSticker(uint256 templateId, uint256 idx) external view returns (bytes memory) {
+        if (templateId >= templateCount) revert ENC_BadTemplate();
+        Template storage t = _templates[templateId];
+        if (idx >= t.stickers.length) revert ENC_BadValue();
+        return t.stickers[idx];
+    }
+
+    function addTemplate(
+        bytes32 tag,
+        bytes3 bg,
+        bytes3 accent,
+        uint16 fontPx,
+        uint8 strokeTenthPx,
+        uint8 effect,
+        bytes calldata header,
+        bytes calldata footer,
+        bytes[] calldata stickers
+    ) external onlyWarden {
+        if (templateCount >= MAX_TEMPLATES) revert ENC_BadValue();
+        if (fontPx < 10 || fontPx > 64) revert ENC_BadValue();
+        if (strokeTenthPx > 40) revert ENC_BadValue();
+        if (effect > 3) revert ENC_BadValue();
+        if (stickers.length > 8) revert ENC_BadValue();
+        if (stickers.length > 0) {
+            uint256 n = stickers.length;
+            for (uint256 i; i < n; ) {
+                if (stickers[i].length == 0) revert ENC_BadValue();
+                unchecked {
