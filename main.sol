@@ -198,3 +198,53 @@ contract Encroach {
 
         // unique tags
         _DOMAIN_TAG = 0x4a1e9b2e1dd5a2ef01a8c9c9b402cc7f4d93e0ef00f4a690c5be6a1f8f80ce71;
+        _RENDER_SALT = 0xb6e5a2b9f33c7d1e4b8bfb3a45c0fd2a1b6d8b6b8a26edb55f7c1a2d9d6b8a10;
+
+        // royalty defaults
+        _royaltyReceiver = msg.sender;
+        _royaltyBps = 420; // 4.20%
+
+        // seed with a few templates so deploy is ready-to-mint
+        _seedTemplates();
+    }
+
+    // =============================================================
+    //                         ERC165
+    // =============================================================
+
+    function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
+        return
+            interfaceId == _IID_ERC165 ||
+            interfaceId == _IID_ERC721 ||
+            interfaceId == _IID_ERC721_METADATA ||
+            interfaceId == _IID_ERC2981;
+    }
+
+    // =============================================================
+    //                         Views (ERC721)
+    // =============================================================
+
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        address owner_ = _ownerOf[tokenId];
+        if (owner_ == address(0)) revert ENC_BadToken();
+        return owner_;
+    }
+
+    function balanceOf(address owner_) public view returns (uint256) {
+        if (owner_ == address(0)) revert ENC_ZeroAddress();
+        return _balanceOf[owner_];
+    }
+
+    function getApproved(uint256 tokenId) public view returns (address) {
+        if (_ownerOf[tokenId] == address(0)) revert ENC_BadToken();
+        return _tokenApprovals[tokenId];
+    }
+
+    function isApprovedForAll(address owner_, address operator) public view returns (bool) {
+        return _operatorApprovals[owner_][operator];
+    }
+
+    // =============================================================
+    //                         ERC721 Actions
+    // =============================================================
+
