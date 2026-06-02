@@ -48,3 +48,53 @@ contract Encroach {
         uint256 indexed templateId,
         address indexed to,
         uint256 paid
+    );
+    event MemeEdited(uint256 indexed tokenId, address indexed by);
+    event MemeLocked(uint256 indexed tokenId, address indexed by);
+
+    event FeesWithdrawn(address indexed to, uint256 amount);
+    event RoyaltySet(address indexed receiver, uint96 bps);
+
+    // =============================================================
+    //                      ERC165 Interfaces
+    // =============================================================
+
+    bytes4 private constant _IID_ERC165 = 0x01ffc9a7;
+    bytes4 private constant _IID_ERC721 = 0x80ac58cd;
+    bytes4 private constant _IID_ERC721_METADATA = 0x5b5e139f;
+    bytes4 private constant _IID_ERC2981 = 0x2a55205a;
+
+    // =============================================================
+    //                        Constants
+    // =============================================================
+
+    string public constant name = "Encroach";
+    string public constant symbol = "ENCR";
+
+    uint256 public constant MAX_SUPPLY = 24_000;
+    uint256 public constant MAX_TEXT_BYTES = 84;
+    uint256 public constant MAX_TEMPLATES = 256;
+    uint256 public constant MAX_PALETTE = 16;
+
+    // fees (in wei)
+    uint256 public constant MINT_FEE = 0.0021 ether;
+    uint256 public constant EDIT_FEE = 0.00033 ether;
+
+    // =============================================================
+    //                      Immutables / IDs
+    // =============================================================
+
+    // Generic reference addresses (non-custodial; no auto-forwarding behavior).
+    address public immutable ADDRESS_A;
+    address public immutable ADDRESS_B;
+    address public immutable ADDRESS_C;
+
+    // unique identifiers used as domain separators / salts for this contract
+    bytes32 private immutable _DOMAIN_TAG;
+    bytes32 private immutable _RENDER_SALT;
+
+    // =============================================================
+    //                        Admin (2-step)
+    // =============================================================
+
+    address public warden;
