@@ -98,3 +98,53 @@ contract Encroach {
     // =============================================================
 
     address public warden;
+    address public pendingWarden;
+    bool public frozen;
+
+    modifier onlyWarden() {
+        if (msg.sender != warden) revert ENC_NotWarden();
+        _;
+    }
+
+    modifier whenActive() {
+        if (frozen) revert ENC_Frozen();
+        _;
+    }
+
+    // =============================================================
+    //                      Reentrancy Guard
+    // =============================================================
+
+    uint256 private _guard;
+    modifier nonReentrant() {
+        if (_guard == 1) revert ENC_Reentrancy();
+        _guard = 1;
+        _;
+        _guard = 0;
+    }
+
+    // =============================================================
+    //                           ERC721
+    // =============================================================
+
+    mapping(uint256 => address) private _ownerOf;
+    mapping(address => uint256) private _balanceOf;
+    mapping(uint256 => address) private _tokenApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
+
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Approval(address indexed owner, address indexed spender, uint256 indexed tokenId);
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+
+    // =============================================================
+    //                           Royalty
+    // =============================================================
+
+    address private _royaltyReceiver;
+    uint96 private _royaltyBps;
+
+    // =============================================================
+    //                         Meme Platform
+    // =============================================================
+
+    struct Template {
