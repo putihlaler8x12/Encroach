@@ -548,3 +548,53 @@ contract Encroach {
 
         m.top = top;
         m.bottom = bottom;
+        m.hue = hue;
+        m.grain = grain;
+
+        emit MemeEdited(tokenId, msg.sender);
+
+        if (msg.value > due) {
+            uint256 refund = msg.value - due;
+            (bool ok, ) = payable(msg.sender).call{value: refund}("");
+            if (!ok) revert ENC_TransferFailed();
+        }
+    }
+
+    function lockMeme(uint256 tokenId) external whenActive {
+        address owner_ = ownerOf(tokenId);
+        if (!_isApprovedOrOwner(owner_, msg.sender, tokenId)) revert ENC_Unauthorized();
+        Meme storage m = _memes[tokenId];
+        if (m.locked) revert ENC_AlreadyLocked();
+        m.locked = true;
+        emit MemeLocked(tokenId, msg.sender);
+    }
+
+    function memeOf(uint256 tokenId)
+        external
+        view
+        returns (uint256 templateId, uint16 hue, uint16 grain, bool locked, string memory top, string memory bottom)
+    {
+        if (_ownerOf[tokenId] == address(0)) revert ENC_BadToken();
+        Meme storage m = _memes[tokenId];
+        return (m.templateId, m.hue, m.grain, m.locked, m.top, m.bottom);
+    }
+
+    // =============================================================
+    //                      Metadata / Rendering
+    // =============================================================
+
+    function tokenURI(uint256 tokenId) external view returns (string memory) {
+        if (_ownerOf[tokenId] == address(0)) revert ENC_BadToken();
+        Meme storage m = _memes[tokenId];
+        Template storage t = _templates[m.templateId];
+
+        string memory svg = renderSVG(tokenId);
+        string memory img = string.concat("data:image/svg+xml;base64,", Base64.encode(bytes(svg)));
+
+        string memory title = string.concat("Encroach #", LibString.toString(tokenId));
+        string memory desc = "A memetic artifact forged onchain. Edit captions, lock it, and let the JPEG trench decide.";
+
+        string memory attrs = _attributesJSON(m, t);
+        bytes memory json = abi.encodePacked(
+            '{"name":"',
+            _jsonEscape(title),
