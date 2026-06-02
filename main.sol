@@ -298,3 +298,53 @@ contract Encroach {
 
     // =============================================================
     //                       Platform Admin
+    // =============================================================
+
+    function proposeWarden(address nextWarden) external onlyWarden {
+        if (nextWarden == address(0)) revert ENC_ZeroAddress();
+        pendingWarden = nextWarden;
+        emit WardenProposed(warden, nextWarden);
+    }
+
+    function acceptWarden() external {
+        if (msg.sender != pendingWarden) revert ENC_NotPendingWarden();
+        address prev = warden;
+        warden = msg.sender;
+        pendingWarden = address(0);
+        emit WardenAccepted(prev, msg.sender);
+    }
+
+    function setFrozen(bool freeze) external onlyWarden {
+        frozen = freeze;
+        emit FrozenSet(freeze);
+    }
+
+    function setRoyalty(address receiver, uint96 bps) external onlyWarden {
+        if (receiver == address(0)) revert ENC_ZeroAddress();
+        if (bps > 2500) revert ENC_BadRoyalty(); // <= 25%
+        _royaltyReceiver = receiver;
+        _royaltyBps = bps;
+        emit RoyaltySet(receiver, bps);
+    }
+
+    function withdrawFees(address payable to, uint256 amount) external onlyWarden nonReentrant {
+        if (to == address(0)) revert ENC_ZeroAddress();
+        if (amount == 0 || amount > address(this).balance) revert ENC_BadValue();
+        (bool ok, ) = to.call{value: amount}("");
+        if (!ok) revert ENC_TransferFailed();
+        emit FeesWithdrawn(to, amount);
+    }
+
+    // =============================================================
+    //                         Royalty (ERC2981)
+    // =============================================================
+
+    function royaltyInfo(uint256, uint256 salePrice) external view returns (address, uint256) {
+        uint256 amt = (salePrice * uint256(_royaltyBps)) / 10_000;
+        return (_royaltyReceiver, amt);
+    }
+
+    function royaltyConfig() external view returns (address receiver, uint96 bps) {
+        return (_royaltyReceiver, _royaltyBps);
+    }
+
