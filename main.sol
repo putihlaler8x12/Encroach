@@ -598,3 +598,53 @@ contract Encroach {
         bytes memory json = abi.encodePacked(
             '{"name":"',
             _jsonEscape(title),
+            '","description":"',
+            _jsonEscape(desc),
+            '","image":"',
+            img,
+            '","attributes":',
+            attrs,
+            "}"
+        );
+
+        return string.concat("data:application/json;base64,", Base64.encode(json));
+    }
+
+    function renderSVG(uint256 tokenId) public view returns (string memory) {
+        if (_ownerOf[tokenId] == address(0)) revert ENC_BadToken();
+        Meme storage m = _memes[tokenId];
+        Template storage t = _templates[m.templateId];
+
+        bytes memory top = bytes(_clampAndSanitize(m.top));
+        bytes memory bottom = bytes(_clampAndSanitize(m.bottom));
+
+        bytes memory bg = abi.encodePacked("#", LibHex.toHex3(t.bg));
+        bytes memory acc = abi.encodePacked("#", LibHex.toHex3(t.accent));
+
+        // effects use deterministic spice; no external entropy required
+        RenderCtx memory ctx = RenderCtx({
+            tokenId: tokenId,
+            hue: m.hue,
+            grain: m.grain,
+            effect: t.effect,
+            stickerCount: t.stickerCount,
+            fontPx: t.fontPx,
+            strokeTenthPx: t.strokeTenthPx,
+            spice: m.spice,
+            bg: bg,
+            acc: acc
+        });
+
+        bytes memory core = _renderCore(ctx, t, top, bottom);
+        return string(core);
+    }
+
+    // =============================================================
+    //                       Internal Rendering
+    // =============================================================
+
+    struct RenderCtx {
+        uint256 tokenId;
+        uint16 hue;
+        uint16 grain;
+        uint8 effect;
