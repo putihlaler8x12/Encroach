@@ -398,3 +398,53 @@ contract Encroach {
             for (uint256 i; i < n; ) {
                 if (stickers[i].length == 0) revert ENC_BadValue();
                 unchecked {
+                    ++i;
+                }
+            }
+        }
+
+        uint256 id = templateCount;
+        Template storage t = _templates[id];
+        t.tag = tag;
+        t.bg = bg;
+        t.accent = accent;
+        t.fontPx = fontPx;
+        t.strokeTenthPx = strokeTenthPx;
+        t.effect = effect;
+        t.header = header;
+        t.footer = footer;
+
+        uint256 m = stickers.length;
+        if (m != 0) {
+            t.stickers = new bytes[](m);
+            for (uint256 j; j < m; ) {
+                t.stickers[j] = stickers[j];
+                unchecked {
+                    ++j;
+                }
+            }
+        }
+        t.stickerCount = uint8(m);
+
+        unchecked {
+            templateCount = id + 1;
+        }
+        emit TemplateAdded(id, tag, msg.sender);
+    }
+
+    function tuneTemplate(
+        uint256 templateId,
+        bytes3 bg,
+        bytes3 accent,
+        uint16 fontPx,
+        uint8 strokeTenthPx,
+        uint8 effect
+    ) external onlyWarden {
+        if (templateId >= templateCount) revert ENC_BadTemplate();
+        if (fontPx < 10 || fontPx > 64) revert ENC_BadValue();
+        if (strokeTenthPx > 40) revert ENC_BadValue();
+        if (effect > 3) revert ENC_BadValue();
+
+        Template storage t = _templates[templateId];
+        t.bg = bg;
+        t.accent = accent;
