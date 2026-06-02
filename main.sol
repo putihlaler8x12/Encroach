@@ -248,3 +248,53 @@ contract Encroach {
     //                         ERC721 Actions
     // =============================================================
 
+    function approve(address spender, uint256 tokenId) external {
+        address owner_ = ownerOf(tokenId);
+        if (spender == owner_) revert ENC_BadValue();
+        if (msg.sender != owner_ && !_operatorApprovals[owner_][msg.sender]) revert ENC_NotApproved();
+        _tokenApprovals[tokenId] = spender;
+        emit Approval(owner_, spender, tokenId);
+    }
+
+    function setApprovalForAll(address operator, bool approved) external {
+        _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    function transferFrom(address from, address to, uint256 tokenId) public {
+        if (to == address(0)) revert ENC_ZeroAddress();
+        address owner_ = ownerOf(tokenId);
+        if (owner_ != from) revert ENC_BadValue();
+
+        if (
+            msg.sender != owner_ &&
+            msg.sender != _tokenApprovals[tokenId] &&
+            !_operatorApprovals[owner_][msg.sender]
+        ) {
+            revert ENC_NotApproved();
+        }
+
+        unchecked {
+            _balanceOf[from] -= 1;
+            _balanceOf[to] += 1;
+        }
+        _ownerOf[tokenId] = to;
+        delete _tokenApprovals[tokenId];
+
+        emit Transfer(from, to, tokenId);
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId) external {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public {
+        transferFrom(from, to, tokenId);
+        if (to.code.length != 0) {
+            bytes4 retval = IERC721Receiver(to).onERC721Received(msg.sender, from, tokenId, data);
+            if (retval != IERC721Receiver.onERC721Received.selector) revert ENC_UnsafeRecipient();
+        }
+    }
+
+    // =============================================================
+    //                       Platform Admin
