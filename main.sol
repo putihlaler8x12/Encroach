@@ -498,3 +498,53 @@ contract Encroach {
         if (msg.value < due) revert ENC_BadValue();
 
         tokenId = totalSupply + 1;
+        totalSupply = tokenId;
+
+        _ownerOf[tokenId] = to;
+        unchecked {
+            _balanceOf[to] += 1;
+        }
+        emit Transfer(address(0), to, tokenId);
+
+        Meme storage m = _memes[tokenId];
+        m.templateId = uint32(templateId);
+        m.top = top;
+        m.bottom = bottom;
+        m.hue = hue;
+        m.grain = grain;
+        m.locked = false;
+        m.spice = _memeSpice(tokenId, to, templateId);
+
+        emit MemeMinted(tokenId, templateId, to, due);
+
+        // refund if overpaid
+        if (msg.value > due) {
+            uint256 refund = msg.value - due;
+            (bool ok, ) = payable(msg.sender).call{value: refund}("");
+            if (!ok) revert ENC_TransferFailed();
+        }
+    }
+
+    function editMeme(
+        uint256 tokenId,
+        string calldata top,
+        string calldata bottom,
+        uint16 hue,
+        uint16 grain
+    ) external payable whenActive nonReentrant {
+        address owner_ = ownerOf(tokenId);
+        if (!_isApprovedOrOwner(owner_, msg.sender, tokenId)) revert ENC_Unauthorized();
+
+        Meme storage m = _memes[tokenId];
+        if (m.locked) revert ENC_AlreadyLocked();
+
+        _checkText(top);
+        _checkText(bottom);
+        if (hue >= 360) revert ENC_BadValue();
+        if (grain > 100) revert ENC_BadValue();
+
+        uint256 due = quoteEdit(tokenId);
+        if (msg.value < due) revert ENC_BadValue();
+
+        m.top = top;
+        m.bottom = bottom;
