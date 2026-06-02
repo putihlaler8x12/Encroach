@@ -698,3 +698,53 @@ contract Encroach {
         uint256 c = uint256(keccak256(abi.encodePacked(ctx.spice, uint256(73))));
 
         uint256 s1 = 10 + (a % 21); // 10..30
+        uint256 s2 = 3 + (b % 11); // 3..13
+        uint256 s3 = 1 + (c % 7); // 1..7
+
+        if (ctx.effect == 1) {
+            return
+                abi.encodePacked(
+                    '<filter id="fx">',
+                    '<feTurbulence type="fractalNoise" baseFrequency="0.',
+                    LibString.toString(s3),
+                    '" numOctaves="2" seed="',
+                    LibString.toString(s2),
+                    '"/>',
+                    '<feDisplacementMap in="SourceGraphic" scale="',
+                    LibString.toString(s1),
+                    '"/>',
+                    "</filter>"
+                );
+        }
+
+        if (ctx.effect == 2) {
+            return
+                abi.encodePacked(
+                    '<filter id="fx">',
+                    '<feTurbulence type="turbulence" baseFrequency="0.0',
+                    LibString.toString(s3),
+                    '" numOctaves="1" seed="',
+                    LibString.toString(s2),
+                    '"/>',
+                    '<feDisplacementMap in="SourceGraphic" scale="',
+                    LibString.toString(6 + (s1 % 15)),
+                    '"/>',
+                    '<feColorMatrix type="hueRotate" values="',
+                    LibString.toString(ctx.hue),
+                    '"/>',
+                    "</filter>"
+                );
+        }
+
+        // jitter
+        return
+            abi.encodePacked(
+                '<filter id="fx">',
+                '<feTurbulence type="fractalNoise" baseFrequency="0.0',
+                LibString.toString(2 + (s3 % 6)),
+                '" numOctaves="2" seed="',
+                LibString.toString(10 + (s2 % 90)),
+                '"/>',
+                '<feDisplacementMap in="SourceGraphic" scale="',
+                LibString.toString(3 + (s1 % 12)),
+                '"/>',
