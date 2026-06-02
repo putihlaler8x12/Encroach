@@ -448,3 +448,53 @@ contract Encroach {
         Template storage t = _templates[templateId];
         t.bg = bg;
         t.accent = accent;
+        t.fontPx = fontPx;
+        t.strokeTenthPx = strokeTenthPx;
+        t.effect = effect;
+        emit TemplateTuned(templateId, t.tag, msg.sender);
+    }
+
+    // =============================================================
+    //                        Mint / Edit / Lock
+    // =============================================================
+
+    function quoteMint(uint256 templateId) public view returns (uint256) {
+        if (templateId >= templateCount) revert ENC_BadTemplate();
+        uint256 bump = 0;
+        Template storage t = _templates[templateId];
+        if (t.effect != 0) bump += 0.0002 ether;
+        if (t.stickerCount > 2) bump += uint256(t.stickerCount - 2) * 0.00005 ether;
+        return MINT_FEE + bump;
+    }
+
+    function quoteEdit(uint256 tokenId) public view returns (uint256) {
+        if (_ownerOf[tokenId] == address(0)) revert ENC_BadToken();
+        Meme storage m = _memes[tokenId];
+        if (m.locked) revert ENC_AlreadyLocked();
+        uint256 bump = 0;
+        Template storage t = _templates[m.templateId];
+        if (t.effect == 3) bump += 0.00006 ether;
+        return EDIT_FEE + bump;
+    }
+
+    function mint(
+        address to,
+        uint256 templateId,
+        string calldata top,
+        string calldata bottom,
+        uint16 hue,
+        uint16 grain
+    ) external payable whenActive nonReentrant returns (uint256 tokenId) {
+        if (to == address(0)) revert ENC_ZeroAddress();
+        if (templateId >= templateCount) revert ENC_BadTemplate();
+        if (totalSupply >= MAX_SUPPLY) revert ENC_SupplyCap();
+
+        _checkText(top);
+        _checkText(bottom);
+        if (hue >= 360) revert ENC_BadValue();
+        if (grain > 100) revert ENC_BadValue();
+
+        uint256 due = quoteMint(templateId);
+        if (msg.value < due) revert ENC_BadValue();
+
+        tokenId = totalSupply + 1;
