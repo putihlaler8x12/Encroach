@@ -648,3 +648,53 @@ contract Encroach {
         uint16 hue;
         uint16 grain;
         uint8 effect;
+        uint8 stickerCount;
+        uint16 fontPx;
+        uint8 strokeTenthPx;
+        bytes32 spice;
+        bytes bg;
+        bytes acc;
+    }
+
+    function _renderCore(
+        RenderCtx memory ctx,
+        Template storage t,
+        bytes memory top,
+        bytes memory bottom
+    ) internal view returns (bytes memory) {
+        bytes memory filterBlock = _filters(ctx);
+        bytes memory stickerBlock = _stickers(ctx, t);
+        bytes memory captionTop = _caption(ctx, top, true);
+        bytes memory captionBottom = _caption(ctx, bottom, false);
+        bytes memory grain = _grain(ctx);
+
+        return
+            abi.encodePacked(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">',
+                "<defs>",
+                filterBlock,
+                grain,
+                "</defs>",
+                '<rect width="1024" height="1024" fill="',
+                ctx.bg,
+                '"/>',
+                t.header,
+                stickerBlock,
+                captionTop,
+                captionBottom,
+                t.footer,
+                "</svg>"
+            );
+    }
+
+    function _filters(RenderCtx memory ctx) internal pure returns (bytes memory) {
+        if (ctx.effect == 0) {
+            return bytes("");
+        }
+
+        // deterministic parameters derived from spice
+        uint256 a = uint256(keccak256(abi.encodePacked(ctx.spice, uint256(11))));
+        uint256 b = uint256(keccak256(abi.encodePacked(ctx.spice, uint256(29))));
+        uint256 c = uint256(keccak256(abi.encodePacked(ctx.spice, uint256(73))));
+
+        uint256 s1 = 10 + (a % 21); // 10..30
